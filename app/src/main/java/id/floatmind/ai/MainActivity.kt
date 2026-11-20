@@ -101,7 +101,7 @@ class MainActivity : Activity() {
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             setPadding(dp(14), dp(12), dp(14), dp(12))
             background = rounded(surfaceSoft, 12)
-            setText(getPreferences(Context.MODE_PRIVATE).getString("model", DEFAULT_MODEL))
+            setText(getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getString("model", DEFAULT_MODEL))
         }
         settingsCard.addView(modelInput, matchWrap())
         settingsCard.addView(label(
