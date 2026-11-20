@@ -37,19 +37,25 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Install required Android SDK packages
+      - name: Accept Android SDK licenses and install packages
         shell: bash
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses
+          sdkmanager --licenses < <(yes)
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0"
           sdkmanager --list_installed
 
-      - name: Validate Android manifest
+      - name: Validate Android project files
+        shell: bash
         run: |
+          set -euo pipefail
+          test -f settings.gradle.kts
+          test -f build.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/AndroidManifest.xml
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
 
