@@ -36,10 +36,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
-        with:
-          packages: ''
 
       - name: Install required Android SDK packages
+        shell: bash
         run: |
           set -euo pipefail
           yes | sdkmanager --licenses
@@ -62,6 +61,7 @@ jobs:
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Verify APK
+        shell: bash
         run: |
           set -euo pipefail
           APK="app/build/outputs/apk/debug/app-debug.apk"
