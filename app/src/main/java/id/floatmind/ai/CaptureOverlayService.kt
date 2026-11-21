@@ -253,7 +253,8 @@ class CaptureOverlayService : Service() {
         val button = scanButton ?: return
         if (!capturePending.compareAndSet(false, true)) return
         button.isEnabled = false
-        output.text = "Menunggu frame layar baru..."
+        output.text = "Memindai layar..."
+        setOverlayVisible(false)
         worker.postDelayed({
             if (capturePending.compareAndSet(true, false)) {
                 showCaptureError("Waktu capture habis. Pastikan sesi berbagi layar masih aktif, lalu coba lagi.")
@@ -323,8 +324,18 @@ class CaptureOverlayService : Service() {
         })
     }
 
+    private fun setOverlayVisible(visible: Boolean) {
+        val state = if (visible) View.VISIBLE else View.INVISIBLE
+        mainHandler.post {
+            if (::bubble.isInitialized) bubble.visibility = state
+            panel?.visibility = state
+        }
+    }
+
     private fun showResult(message: String) {
         mainHandler.post {
+            if (::bubble.isInitialized) bubble.visibility = View.VISIBLE
+            panel?.visibility = View.VISIBLE
             resultView?.text = message
             scanButton?.isEnabled = true
         }
