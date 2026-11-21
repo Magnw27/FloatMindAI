@@ -196,7 +196,7 @@ class CaptureOverlayService : Service() {
                     if (kotlin.math.abs(dx) + kotlin.math.abs(dy) > dp(6)) moved = true
                     params.x = (startX + dx).coerceAtLeast(0)
                     params.y = (startY + dy).coerceAtLeast(0)
-                    try { windowManager.updateViewLayout(bubble, params) } catch (_: Exception) {}
+                    try { windowManager.updateViewLayout(bubble, params) } catch (error: Exception) {}
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -210,7 +210,7 @@ class CaptureOverlayService : Service() {
 
     private fun togglePanel() {
         if (panel != null) {
-            try { windowManager.removeView(panel) } catch (_: Exception) {}
+            try { windowManager.removeView(panel) } catch (error: Exception) {}
             panel = null
             return
         }
@@ -314,7 +314,7 @@ class CaptureOverlayService : Service() {
                             json.getJSONArray("choices").getJSONObject(0)
                                 .getJSONObject("message").optString("content", "Respons AI kosong.")
                         }
-                    } catch (_: Exception) {
+                    } catch (error: Exception) {
                         "Respons API tidak dapat dibaca (HTTP ${it.code}). Coba lagi atau periksa model."
                     }
                     showResult(answer)
@@ -334,13 +334,13 @@ class CaptureOverlayService : Service() {
 
     private fun stopSession() {
         capturePending.set(false)
-        try { if (::windowManager.isInitialized && ::bubble.isInitialized) windowManager.removeView(bubble) } catch (_: Exception) {}
-        try { if (::windowManager.isInitialized && panel != null) windowManager.removeView(panel) } catch (_: Exception) {}
+        try { if (::windowManager.isInitialized && ::bubble.isInitialized) windowManager.removeView(bubble) } catch (error: Exception) {}
+        try { if (::windowManager.isInitialized && panel != null) windowManager.removeView(panel) } catch (error: Exception) {}
         panel = null; resultView = null; scanButton = null
-        try { virtualDisplay?.release() } catch (_: Exception) {}
-        try { imageReader?.setOnImageAvailableListener(null, null); imageReader?.close() } catch (_: Exception) {}
+        try { virtualDisplay?.release() } catch (error: Exception) {}
+        try { imageReader?.setOnImageAvailableListener(null, null); imageReader?.close() } catch (error: Exception) {}
         virtualDisplay = null; imageReader = null
-        try { projection?.stop() } catch (_: Exception) {}
+        try { projection?.stop() } catch (error: Exception) {}
         projection = null
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -348,19 +348,19 @@ class CaptureOverlayService : Service() {
 
     override fun onDestroy() {
         stopSessionResourcesOnly()
-        try { recognizer.close() } catch (_: Exception) {}
+        try { recognizer.close() } catch (error: Exception) {}
         workerThread.quitSafely()
         client.dispatcher.cancelAll()
         super.onDestroy()
     }
 
     private fun stopSessionResourcesOnly() {
-        try { if (::windowManager.isInitialized && ::bubble.isInitialized && bubble.isAttachedToWindow) windowManager.removeView(bubble) } catch (_: Exception) {}
-        try { if (::windowManager.isInitialized && panel?.isAttachedToWindow == true) windowManager.removeView(panel) } catch (_: Exception) {}
-        try { virtualDisplay?.release() } catch (_: Exception) {}
-        try { imageReader?.close() } catch (_: Exception) {}
+        try { if (::windowManager.isInitialized && ::bubble.isInitialized && bubble.isAttachedToWindow) windowManager.removeView(bubble) } catch (error: Exception) {}
+        try { if (::windowManager.isInitialized && panel?.isAttachedToWindow == true) windowManager.removeView(panel) } catch (error: Exception) {}
+        try { virtualDisplay?.release() } catch (error: Exception) {}
+        try { imageReader?.close() } catch (error: Exception) {}
         virtualDisplay = null; imageReader = null; panel = null
-        try { projection?.stop() } catch (_: Exception) {}
+        try { projection?.stop() } catch (error: Exception) {}
         projection = null
     }
 
