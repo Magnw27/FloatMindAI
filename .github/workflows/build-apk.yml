@@ -3,8 +3,7 @@ name: Build FloatMind AI APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main, master]
 
 permissions:
   contents: read
@@ -18,7 +17,6 @@ jobs:
     name: Build debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v7
@@ -37,48 +35,65 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
-      - name: Accept Android SDK licenses and install packages
+      - name: Install Android SDK packages
         shell: bash
         run: |
           set -euo pipefail
           sdkmanager --licenses < <(yes)
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-          sdkmanager --list_installed
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Validate Android project files
+      - name: Locate Android project
+        id: project
         shell: bash
         run: |
           set -euo pipefail
-          test -f settings.gradle.kts
+          mapfile -t candidates < <(find . -type f -name settings.gradle.kts -not -path './.git/*' -not -path '*/build/*')
+          if [ "${#candidates[@]}" -eq 0 ]; then
+            echo "::error::settings.gradle.kts tidak ditemukan. Pastikan folder project diunggah ke repository."
+            find . -maxdepth 4 -type f | sort | head -100
+            exit 1
+          fi
+          if [ "${#candidates[@]}" -gt 1 ]; then
+            printf 'Beberapa project ditemukan:\n%s\n' "${candidates[@]}"
+            echo "::error::Ditemukan lebih dari satu settings.gradle.kts; pastikan hanya satu root Android project."
+            exit 1
+          fi
+          project_dir="$(dirname "${candidates[0]}")"
+          echo "dir=$project_dir" >> "$GITHUB_OUTPUT"
+          echo "Project root: $project_dir"
+
+      - name: Validate project files
+        working-directory: ${{ steps.project.outputs.dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
           test -f build.gradle.kts
           test -f app/build.gradle.kts
           test -f app/src/main/AndroidManifest.xml
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
-
           ET.parse("app/src/main/AndroidManifest.xml")
           print("AndroidManifest.xml is valid.")
           PY
 
       - name: Build debug APK
+        working-directory: ${{ steps.project.outputs.dir }}
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Verify APK
+        working-directory: ${{ steps.project.outputs.dir }}
         shell: bash
         run: |
           set -euo pipefail
-          APK="app/build/outputs/apk/debug/app-debug.apk"
-          test -s "$APK"
-          ls -lh "$APK"
-          file "$APK"
+          apk="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          ls -lh "$apk"
+          file "$apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
           name: FloatMindAI-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.project.outputs.dir }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
