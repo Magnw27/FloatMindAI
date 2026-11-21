@@ -1,4 +1,4 @@
-# FloatMind AI 1.1.0 — Android screen study assistant
+# FloatMind AI 1.1.2 — Android screen study assistant
 
 A user-controlled floating study helper for Android. It requires explicit Android screen-capture consent for each session, shows an ongoing notification with a Stop action, captures a fresh frame only after the user taps Scan, performs OCR on-device with ML Kit, then sends extracted text (not the screenshot) to the user's OpenRouter account for an explanation.
 
@@ -51,7 +51,7 @@ Copy to shared storage (after `termux-setup-storage` in Termux):
 
 ```bash
 mkdir -p /sdcard/Download
-cp app/build/outputs/apk/debug/app-debug.apk /sdcard/Download/FloatMindAI-1.1.0.apk
+cp app/build/outputs/apk/debug/app-debug.apk /sdcard/Download/FloatMindAI-1.1.2.apk
 ```
 
 ## First use on Android 15 / ColorOS
@@ -65,7 +65,7 @@ cp app/build/outputs/apk/debug/app-debug.apk /sdcard/Download/FloatMindAI-1.1.0.
 
 If ColorOS suspends the app, allow FloatMind to run in the background / use the least restrictive battery setting available on your device. Do not disable Android's screen-capture or privacy indicators.
 
-## Current limitations
+## Version 1.1.2\n- Aligns the project version with the Android 15 build configuration.\n- Uses a workflow that locates the Gradle project root even when it is nested in a repository subfolder.\n- Keeps screen capture user-triggered and sends OCR text rather than screenshots to OpenRouter.\n\n## Current limitations
 - Prototype UI uses native Android views; it is intentionally dependency-light.
 - OCR quality depends on screen resolution, font size, contrast and language.
 - Text sent to the model is capped at 14,000 characters and response length at 900 tokens to control usage.
