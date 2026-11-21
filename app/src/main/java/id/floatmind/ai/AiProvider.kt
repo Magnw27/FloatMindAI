@@ -6,6 +6,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.URI
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
@@ -153,15 +154,24 @@ object AiProvider {
     private fun openAiEndpoint(base: String, path: String): String {
         val normalized = base.trim().trimEnd('/')
         require(normalized.isNotBlank()) { "Isi Public URL layanan OpenAI-compatible." }
-        val parsed = try { URL(normalized) } catch (_: Exception) {
+        val parsed = try {
+            URI(normalized)
+        } catch (_: Exception) {
             throw IllegalArgumentException("Public URL tidak valid.")
         }
-        val localHost = parsed.host.equals("localhost", true) ||
-            parsed.host == "127.0.0.1" || parsed.host == "::1"
-        require(parsed.protocol.equals("https", true) || (parsed.protocol.equals("http", true) && localHost)) {
+        val host = parsed.host.orEmpty()
+        val scheme = parsed.scheme.orEmpty()
+        val localHost = host.equals("localhost", true) ||
+            host == "127.0.0.1" ||
+            host == "::1" ||
+            host == "[::1]"
+        require(
+            scheme.equals("https", true) ||
+                (scheme.equals("http", true) && localHost)
+        ) {
             "Gunakan HTTPS Public URL. HTTP hanya diizinkan untuk localhost."
         }
-        require(parsed.host.isNotBlank() && parsed.userInfo == null) {
+        require(host.isNotBlank() && parsed.userInfo == null) {
             "Public URL harus memiliki host valid dan tidak boleh berisi kredensial."
         }
         val root = if (normalized.endsWith("/v1")) normalized else "$normalized/v1"
