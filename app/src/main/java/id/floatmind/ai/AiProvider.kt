@@ -152,12 +152,18 @@ object AiProvider {
 
     private fun openAiEndpoint(base: String, path: String): String {
         val normalized = base.trim().trimEnd('/')
-        require(normalized.startsWith("https://") ||
-            normalized.startsWith("http://localhost") ||
-            normalized.startsWith("http://127.0.0.1")) {
-            "Endpoint harus HTTPS. HTTP hanya diizinkan untuk localhost."
+        require(normalized.isNotBlank()) { "Isi Public URL layanan OpenAI-compatible." }
+        val parsed = try { URL(normalized) } catch (_: Exception) {
+            throw IllegalArgumentException("Public URL tidak valid.")
         }
-        require(normalized.isNotBlank()) { "Isi Base URL layanan OpenAI-compatible." }
+        val localHost = parsed.host.equals("localhost", true) ||
+            parsed.host == "127.0.0.1" || parsed.host == "::1"
+        require(parsed.protocol.equals("https", true) || (parsed.protocol.equals("http", true) && localHost)) {
+            "Gunakan HTTPS Public URL. HTTP hanya diizinkan untuk localhost."
+        }
+        require(parsed.host.isNotBlank() && parsed.userInfo == null) {
+            "Public URL harus memiliki host valid dan tidak boleh berisi kredensial."
+        }
         val root = if (normalized.endsWith("/v1")) normalized else "$normalized/v1"
         return "$root/$path"
     }
