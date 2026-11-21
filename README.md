@@ -20,11 +20,11 @@ FloatMind is an Android floating study companion. It captures a screen frame onl
 
 1. Select OpenRouter, Gemini API, or OpenAI-compatible.
 2. Enter the provider API key. For a local gateway that does not require a key, leave it blank.
-3. For 9Router / OmniRoute, enter its OpenAI-compatible HTTPS Base URL, normally ending in `/v1`.
+3. For 9Router / OmniRoute, paste the **HTTPS Public URL** from Cloudflare Quick Tunnel (for example `https://random-name.trycloudflare.com`) into the Base URL field. You do not need to add `/v1`; FloatMind appends it automatically. If the tunnel URL changes after restarting the free Quick Tunnel, update the URL in the app and scan models again.
 4. Tap **Scan model**, select a model, then tap **Check config**.
 5. Save the configuration and activate Floating AI.
 
-A model appearing in the provider's model list does not guarantee that it is free, enabled for your account, or suitable for chat completions. Provider pricing, quotas, regional access, and rate limits can change. Always verify current terms with the provider. OpenRouter free models are prioritized when the API reports free pricing.
+Only paste a tunnel URL that you control or trust. API requests, including any configured API key, are sent to that endpoint. Keep the Cloudflare tunnel online while using the app. A model appearing in the provider's model list does not guarantee that it is free, enabled for your account, or suitable for chat completions. Provider pricing, quotas, regional access, and rate limits can change. Always verify current terms with the provider. OpenRouter free models are prioritized when the API reports free pricing.
 
 ## Two-pass response mode
 
