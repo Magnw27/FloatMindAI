@@ -85,11 +85,12 @@ class MainActivity : Activity() {
             setSelection(prefs.getInt("provider_index", 0).coerceIn(0, ProviderKind.entries.lastIndex))
         }
         configCard.addView(providerSpinner, fieldParams())
-        configCard.addView(fieldLabel("Base URL · khusus 9Router / OmniRoute"))
-        endpointInput = input("https://alamat-provider-kamu/v1").apply {
+        configCard.addView(fieldLabel("Public Base URL · Cloudflare Quick Tunnel / OmniRoute"))
+        endpointInput = input("https://nama-acak.trycloudflare.com").apply {
             setText(prefs.getString("base_url", ""))
         }
         configCard.addView(endpointInput, fieldParams())
+        configCard.addView(label("Tempel HTTPS Public URL dari Quick Tunnel. Tidak perlu menambahkan /v1; FloatMind akan menyesuaikan endpoint /v1 secara otomatis. URL tunnel bisa berubah saat tunnel dibuat ulang.", 11f, muted).apply { setPadding(0, dp(6), 0, 0) })
         configCard.addView(fieldLabel("API key"))
         apiKeyInput = input("Tempel API key provider").apply {
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -404,7 +405,7 @@ class MainActivity : Activity() {
         textSize = 14f
         setTextColor(ink)
         setHintTextColor(muted)
-        singleLine = true
+        isSingleLine = true
         setPadding(dp(13), dp(11), dp(13), dp(11))
         background = GradientDrawable().apply {
             setColor(0xCC111A30.toInt())
