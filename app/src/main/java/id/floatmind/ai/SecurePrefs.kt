@@ -34,7 +34,7 @@ object SecurePrefs {
                     .apply()
                 true
             }
-        } catch (_: Exception) {
+        } catch (error: Exception) {
             false
         }
     }
@@ -56,7 +56,7 @@ object SecurePrefs {
                 GCMParameterSpec(GCM_TAG_BITS, iv)
             )
             String(cipher.doFinal(ciphertext), Charsets.UTF_8)
-        } catch (_: Exception) {
+        } catch (error: Exception) {
             ""
         }
     }
