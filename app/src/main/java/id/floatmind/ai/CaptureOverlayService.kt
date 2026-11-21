@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.Image
@@ -17,13 +18,6 @@ import android.widget.*
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 class CaptureOverlayService : Service() {
@@ -48,12 +42,6 @@ class CaptureOverlayService : Service() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val workerThread = HandlerThread("FloatMindCapture").apply { start() }
     private val worker by lazy { Handler(workerThread.looper) }
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(55, TimeUnit.SECONDS)
-        .writeTimeout(20, TimeUnit.SECONDS)
-        .callTimeout(65, TimeUnit.SECONDS)
-        .build()
     private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
 
     override fun onBind(intent: Intent?) = null
@@ -158,11 +146,11 @@ class CaptureOverlayService : Service() {
     private fun showBubble() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         bubble = TextView(this).apply {
-            text = "AI"
+            text = "FM"
             textSize = 15f
             setTextColor(0xFFFFFFFF.toInt())
             gravity = Gravity.CENTER
-            setBackgroundColor(0xFF315EFB.toInt())
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(0xFF8294FF.toInt(), 0xFF465CE0.toInt())).apply { cornerRadius = dp(22).toFloat(); setStroke(dp(1), 0x887F9BFF.toInt()) }
             setPadding(dp(17), dp(13), dp(17), dp(13))
             elevation = dp(8).toFloat()
             setOnTouchListener(BubbleTouchListener())
@@ -217,7 +205,7 @@ class CaptureOverlayService : Service() {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(14), dp(16), dp(14))
-            setBackgroundColor(0xFF172033.toInt())
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(0xF02A3655.toInt(), 0xF018243D.toInt())).apply { cornerRadius = dp(22).toFloat(); setStroke(dp(1), 0x665E7FC1) }
             elevation = dp(12).toFloat()
         }
         val title = TextView(this).apply { text = "FloatMind AI"; textSize = 19f; setTextColor(-1) }
@@ -278,50 +266,45 @@ class CaptureOverlayService : Service() {
     }
 
     private fun askOpenRouter(extracted: String) {
-        val apiKey = SecurePrefs.readApiKey(this)
-        val model = getSharedPreferences("floatmind", Context.MODE_PRIVATE)
-            .getString("model", "openai/gpt-4o-mini").orEmpty()
-        if (apiKey.isBlank()) { showCaptureError("API key belum tersimpan. Buka FloatMind dan simpan key lagi."); return }
-        val clippedText = extracted.take(14000)
-        val messages = JSONArray()
-            .put(JSONObject().put("role", "system").put("content", "Kamu adalah tutor belajar yang ramah. Bantu pengguna memahami materi dan mengerjakan soal latihan dengan penjelasan bertahap. Jika terlihat bahwa ini ujian atau penilaian yang sedang berlangsung, jangan memberikan jawaban untuk disalin; jelaskan konsep dan metode umum yang relevan."))
-            .put(JSONObject().put("role", "user").put("content", "Teks yang terbaca dari layar:\n$clippedText\n\nJelaskan konsep yang diuji dan cara berpikir untuk menyelesaikan soal latihan ini. Gunakan bahasa Indonesia yang ringkas dan jelas."))
-        val payload = JSONObject()
-            .put("model", model)
-            .put("messages", messages)
-            .put("temperature", 0.2)
-            .put("max_tokens", 900)
-        val request = Request.Builder()
-            .url("https://openrouter.ai/api/v1/chat/completions")
-            .header("Authorization", "Bearer $apiKey")
-            .header("Content-Type", "application/json")
-            .header("X-Title", "FloatMind AI")
-            .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-            .build()
-        showResult("Menghubungi OpenRouter...")
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, error: IOException) {
-                showCaptureError("Koneksi gagal: ${error.localizedMessage ?: "periksa internet"}")
+        val preferences = getSharedPreferences("floatmind", Context.MODE_PRIVATE)
+        val provider = ProviderKind.entries.getOrNull(preferences.getInt("provider_index", 0))
+            ?: ProviderKind.OPENROUTER
+        val config = AiConfig(
+            provider = provider,
+            apiKey = SecurePrefs.readApiKey(this),
+            model = preferences.getString("model", "").orEmpty(),
+            baseUrl = preferences.getString("base_url", "").orEmpty()
+        )
+        val twoPass = preferences.getBoolean("two_pass", true)
+        if (config.model.isBlank()) {
+            showCaptureError("Model belum dipilih. Buka FloatMind, scan model, lalu simpan konfigurasi.")
+            return
+        }
+        val sourceText = extracted.take(14000)
+        showResult("Menyusun penjelasan dengan ${config.model}…")
+        worker.post {
+            try {
+                val systemPrompt = "Kamu adalah tutor belajar yang akurat dan jelas. Jelaskan konsep dan langkah berpikir dengan bahasa Indonesia. Jangan mengarang fakta; jika informasi dari teks kurang, nyatakan keterbatasannya. Jika tampak seperti ujian atau penilaian yang sedang berlangsung, ajarkan konsep dan metode, bukan jawaban untuk disalin."
+                val draft = AiProvider.complete(
+                    config,
+                    systemPrompt,
+                    "Teks yang terbaca dari layar:\n$sourceText\n\nJelaskan materi dan cara berpikir untuk menyelesaikan latihan ini. Susun jawaban ringkas, bertahap, dan mudah dipahami.",
+                    900
+                )
+                val finalAnswer = if (twoPass) {
+                    showResult("Memeriksa konsistensi dan ketepatan jawaban…")
+                    AiProvider.complete(
+                        config,
+                        "Kamu adalah reviewer akademik yang teliti. Periksa draf tutor terhadap sumber. Koreksi kesalahan, hapus klaim yang tidak didukung, perjelas langkah yang lompat, dan pertahankan bagian yang sudah benar. Jangan menambahkan fakta yang tidak dapat dipastikan. Keluarkan hanya jawaban final untuk pelajar dalam bahasa Indonesia.",
+                        "SUMBER TEKS:\n$sourceText\n\nDRAF JAWABAN:\n$draft\n\nTinjau dan perbaiki draf tersebut. Jika ada informasi yang tidak tersedia di sumber, jelaskan batasannya.",
+                        1000
+                    )
+                } else draft
+                showResult(finalAnswer)
+            } catch (error: Exception) {
+                showCaptureError("Permintaan AI gagal: ${error.localizedMessage ?: "periksa konfigurasi provider, model, dan koneksi."}")
             }
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    val raw = it.body?.string().orEmpty()
-                    val answer = try {
-                        val json = JSONObject(raw)
-                        if (!it.isSuccessful) {
-                            val detail = json.optJSONObject("error")?.optString("message")
-                            "OpenRouter error HTTP ${it.code}: ${detail?.takeIf { s -> s.isNotBlank() } ?: "periksa API key, saldo, dan model"}"
-                        } else {
-                            json.getJSONArray("choices").getJSONObject(0)
-                                .getJSONObject("message").optString("content", "Respons AI kosong.")
-                        }
-                    } catch (error: Exception) {
-                        "Respons API tidak dapat dibaca (HTTP ${it.code}). Coba lagi atau periksa model."
-                    }
-                    showResult(answer)
-                }
-            }
-        })
+        }
     }
 
     private fun setOverlayVisible(visible: Boolean) {
@@ -361,7 +344,6 @@ class CaptureOverlayService : Service() {
         stopSessionResourcesOnly()
         try { recognizer.close() } catch (error: Exception) {}
         workerThread.quitSafely()
-        client.dispatcher.cancelAll()
         super.onDestroy()
     }
 

@@ -1,73 +1,55 @@
-# FloatMind AI 1.1.2 — Android screen study assistant
+# FloatMind AI 2.0.0
 
-A user-controlled floating study helper for Android. It requires explicit Android screen-capture consent for each session, shows an ongoing notification with a Stop action, captures a fresh frame only after the user taps Scan, performs OCR on-device with ML Kit, then sends extracted text (not the screenshot) to the user's OpenRouter account for an explanation.
+FloatMind is an Android floating study companion. It captures a screen frame only after the user taps Scan, performs OCR locally with ML Kit, and sends extracted text to the AI provider selected by the user.
+
+## Highlights
+
+- Redesigned native Android interface with a dark gradient and translucent glass-style cards.
+- Provider support:
+  - OpenRouter (OpenAI-compatible Chat Completions and automatic model discovery).
+  - Google Gemini API (native Gemini models endpoint and generateContent API).
+  - 9Router, OmniRoute, and other OpenAI-compatible gateways through a configurable HTTPS Base URL.
+- Automatic model discovery. OpenRouter models marked with `:free` or zero prompt/completion pricing are prioritized. Other OpenAI-compatible endpoints prioritize IDs ending in `:free`.
+- Gemini model discovery lists models that support `generateContent`. The Gemini API model-list response does not expose pricing, so free-tier availability must be checked against Google's current pricing and account quota.
+- Optional two-pass answer refinement: first response draft, second response review/correction. This uses two model requests and may double latency and token usage.
+- Check config verifies model discovery and sends a small test prompt before starting a floating session.
+- API keys are encrypted with AES-GCM using Android Keystore.
+- Model identifiers are stored as returned by the provider, including suffixes such as `:free`.
+
+## Provider setup
+
+1. Select OpenRouter, Gemini API, or OpenAI-compatible.
+2. Enter the provider API key. For a local gateway that does not require a key, leave it blank.
+3. For 9Router / OmniRoute, enter its OpenAI-compatible HTTPS Base URL, normally ending in `/v1`.
+4. Tap **Scan model**, select a model, then tap **Check config**.
+5. Save the configuration and activate Floating AI.
+
+A model appearing in the provider's model list does not guarantee that it is free, enabled for your account, or suitable for chat completions. Provider pricing, quotas, regional access, and rate limits can change. Always verify current terms with the provider. OpenRouter free models are prioritized when the API reports free pricing.
+
+## Two-pass response mode
+
+When enabled, FloatMind sends the OCR text to the selected model to create a draft. It then sends the source text and draft to the same model for review. The second stage checks unsupported claims, reasoning gaps, and clarity. This improves the opportunity to catch mistakes but cannot guarantee correctness. Disable it to reduce latency and usage.
 
 ## Privacy and intended use
-- Designed for learning, reading and practice. It is not intended to provide answers to copy during a live graded exam or bypass a website's rules.
-- No silent capture: Android's MediaProjection consent dialog is required for each session.
-- A fresh frame is processed only after the user taps Scan. No screenshot is uploaded; only OCR text is sent to OpenRouter.
-- Do not scan private messages, passwords, banking/payment screens, or sensitive information.
-- OpenRouter key is encrypted with AES-GCM using an Android Keystore key. A rooted/compromised device can still expose app data; do not share a build containing your key.
-- Some apps block screenshots. The app does not bypass protected-screen restrictions.
 
-## Build prerequisites
-- JDK 17
-- Android SDK Platform 35 and Build Tools 35.0.0
-- Android Gradle Plugin 8.7.3 and Gradle 8.9
-- Network access to download Gradle and Maven dependencies
+- Android's MediaProjection consent is required for each capture session.
+- A frame is processed only after the user taps Scan.
+- OCR runs on-device. The screenshot itself is not uploaded; extracted text is sent to the selected provider.
+- Do not scan passwords, private messages, payment screens, or sensitive information.
+- API keys are encrypted with Android Keystore. A rooted or compromised device may still expose app data.
+- The app does not bypass screenshot protections.
+- Use the app to understand study material, not to copy answers during a live graded assessment.
 
-AGP 8.7 requires Gradle 8.9 and JDK 17. If building with a local Gradle installation, verify `gradle --version` and use Gradle 8.9.
+## Build
 
-## Build on Debian proot (Termux)
+Requirements: JDK 17, Android SDK Platform 35, Build Tools 35.0.0, Android Gradle Plugin 8.7.3, Gradle 8.9.
 
 ```bash
-apt update
-apt install -y openjdk-17-jdk unzip wget
-java -version
-```
-
-Install Android command-line tools from the official Android developer site. Place them at `$HOME/android-sdk/cmdline-tools/latest`, then:
-
-```bash
-export ANDROID_HOME="$HOME/android-sdk"
-export ANDROID_SDK_ROOT="$ANDROID_HOME"
-export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
-yes | sdkmanager --licenses
-sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-```
-
-Install Gradle 8.9 and run from the project root:
-
-```bash
-gradle --version
 gradle :app:assembleDebug
 ```
 
-APK output:
+APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 
-`app/build/outputs/apk/debug/app-debug.apk`
+## About
 
-Copy to shared storage (after `termux-setup-storage` in Termux):
-
-```bash
-mkdir -p /sdcard/Download
-cp app/build/outputs/apk/debug/app-debug.apk /sdcard/Download/FloatMindAI-1.1.2.apk
-```
-
-## First use on Android 15 / ColorOS
-1. Install and open FloatMind AI.
-2. Paste your own OpenRouter API key and enter a model slug enabled in your OpenRouter account.
-3. Save settings. The key is encrypted locally with Android Keystore.
-4. Tap Activate Floating AI and allow display-over-other-apps.
-5. Accept Android's screen-sharing consent dialog.
-6. Open a study/practice page, tap the AI bubble, then tap Scan.
-7. Stop the session using the notification's Stop action or the app's Stop button.
-
-If ColorOS suspends the app, allow FloatMind to run in the background / use the least restrictive battery setting available on your device. Do not disable Android's screen-capture or privacy indicators.
-
-## Version 1.1.2\n- Aligns the project version with the Android 15 build configuration.\n- Uses a workflow that locates the Gradle project root even when it is nested in a repository subfolder.\n- Keeps screen capture user-triggered and sends OCR text rather than screenshots to OpenRouter.\n\n## Current limitations
-- Prototype UI uses native Android views; it is intentionally dependency-light.
-- OCR quality depends on screen resolution, font size, contrast and language.
-- Text sent to the model is capped at 14,000 characters and response length at 900 tokens to control usage.
-- Model availability, pricing and account limits are controlled by OpenRouter. The default model text is only a starting example; replace it with a model slug enabled in your account.
-- This source package has not been compiled or device-tested in this environment. Build and test on the target phone before relying on it.
+Developed by Arif, a student developer from Indonesia.
