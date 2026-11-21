@@ -57,7 +57,7 @@ class MainActivity : Activity() {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(22), dp(24), dp(22), dp(28))
-            setBackgroundColor(background)
+            setBackgroundColor(this@MainActivity.background)
         }
 
         content.addView(label("FLOATMIND AI", 12f, accent, true).apply {
@@ -172,7 +172,7 @@ class MainActivity : Activity() {
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
-            setBackgroundColor(background)
+            setBackgroundColor(this@MainActivity.background)
             addView(content)
         }
         ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
